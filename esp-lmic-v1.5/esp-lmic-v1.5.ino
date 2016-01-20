@@ -1,4 +1,5 @@
 /*******************************************************************************
+ * Jan 2016 Adapted for use with ESP8266 mcu by Maarten Westenberg
  * Copyright (c) 2015 Thomas Telkamp, Matthijs Kooijman and Maarten Westenberg
  *
  * Permission is hereby granted, free of charge, to anyone
@@ -80,11 +81,18 @@ uint8_t mydata[] = "Hello ESP8266 world!";
 static osjob_t sendjob;
 
 // Pin mapping
+// XXX We have to see whether all these pins are really used
+// if not, we can use them for real sensor work.
 lmic_pinmap pins = {
   .nss = 15,			// Make D8/GPIO15, is nSS on ESP8266
-  .rxtx = 2, 			// D4/GPIO2 Not connected on RFM92/RFM95
-  .rst = 0,  			// Make D0/GPIO16, Needed on RFM92/RFM95?
-  .dio = {5, 4, 3},		// D1/GPIO5,D2/GPIO4,D3/GPIO3 are usable pins on ESP8266
+  .rxtx = 2, 			// D4/GPIO2. For placeholder only,
+						// Do not connected on RFM92/RFM95
+  .rst = 0,  			// Make D0/GPIO16, Needed on RFM92/RFM95? (probably not)
+  .dio = {5, 4, 3},		// Specify pin numbers for DIO0, 1, 2
+						// D1/GPIO5,D2/GPIO4,D3/GPIO3 are usable pins on ESP8266
+						// NOTE: D3 not really usable when UART not connected
+						// As it is used during bootup and will probably not boot.
+						// Leave D3 Pin unconnected for sensor to work
 };
 
 void onEvent (ev_t ev) {

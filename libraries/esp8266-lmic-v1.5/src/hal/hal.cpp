@@ -24,7 +24,7 @@
 
 static void hal_io_init () {
     pinMode(pins.nss, OUTPUT);
-    pinMode(pins.rxtx, OUTPUT);
+    pinMode(pins.rxtx, OUTPUT);			// NOT used on ESP8266
     pinMode(pins.rst, OUTPUT);
     pinMode(pins.dio[0], INPUT);
     pinMode(pins.dio[1], INPUT);
