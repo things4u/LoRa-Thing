@@ -11,9 +11,16 @@
  * This the HAL to run LMIC on top of the ESP8266 environment.
  *******************************************************************************/
 
-//#include <Arduino.h>
+ // Make hal.cpp hardware dependent
+ // NOTE, need to add defines for every architecture supported.
+#if defined(__AVR__)
+#include <Arduino.h>
+#elif defined(ARDUINO_ARCH_ESP8266)
 #include <ESP.h>
 #include <Base64.h>
+#else
+	// Not good, unrecognized architecture
+#endif
 
 #include <SPI.h>
 #include "../lmic.h"
@@ -172,6 +179,13 @@ void hal_sleep () {
 // wdt (watchdog) problem in this routine.
 //
 void hal_init () {
+#if defined(__AVR__)
+	Serial.println("hal_init: AVR architecture");
+#elif defined(ARDUINO_ARCH_ESP8266)
+	Serial.println("hal_init: ESP architecture");
+#else
+	Serial.println("hal_init: Unknown Architecture");
+#endif
     // configure radio I/O and interrupt handler
 	//if (DEBUG==1) { Serial.println("hal_init: calling hal_io_init"); delay(10); }
     hal_io_init();
