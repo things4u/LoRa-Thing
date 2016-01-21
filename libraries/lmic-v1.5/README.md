@@ -1,13 +1,15 @@
-Arduino-LMIC-v1.5 library
-=========================
+LMIC-v1.5 library
+=================
 This repository contains the IBM LMIC (LoraMAC-in-C) v1.5 library, 
-slightly modified to run in the Arduino environment, allowing using 
+slightly modified to run in the Arduino/ESP8266 environment, allowing using 
 the Semtech SX1272/SX1276 or HopeRF RFM92/95 LoRa tranceiver with 
-an Arduino.
+an Arduino and ESP8266.
 
-The HAL has been imported from Matthijs Kooijman's adaptation of
+The HAL for Arduino has been imported from Matthijs Kooijman's adaptation of
 LMIC v1.4 [https://github.com/matthijskooijman/arduino-lmic], as well
 as some modifications in the library itself.
+The HAL has been modified by Maarten Westenberg to allow other architectures
+such as ESP8266 to be supported (based on defines at compile time).
 
 This repository is work-in-progress.
 

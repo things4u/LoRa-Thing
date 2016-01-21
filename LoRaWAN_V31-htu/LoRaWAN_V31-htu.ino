@@ -1,10 +1,12 @@
 /****************************************************************************************
 * File:     LoRaWAN_V31-htu.ino
 * Author:   Maarten Westenberg
-* Compagny: Things4U
+* Company: Things4U
 * Website:  http://www.ideetron.nl/LoRa
 * E-mail:   mw12554@hotmail.com
 *
+* Publishing temperature and humidity to thethingsnetwork
+* 
 * Based on the example program made by Gerben of Ideetron
 * Changed and extended to support HTU21d temperature/humidity sensors
 * running on an Arduino Pro-Mini
@@ -51,6 +53,7 @@
 #include "RFM95_V20.h"
 #include "LoRaMAC_V10.h"
 #include "Waitloop_V10.h"
+#include "LowPower.h"
 
 #include "Wire.h"
 /*
@@ -75,10 +78,10 @@ unsigned char AppSkey[16] = {
   0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
 };
 
-// Please use your own address here
+// Things4U has Device Addresses 0x02 0x02 0x04 0x??
 //
 unsigned char DevAddr[4] = {
-  0x01, 0x01, 0x01, 0x01
+  0x02, 0x02, 0x04, 0x01
 };
 
 void setup() 
@@ -174,5 +177,15 @@ void loop()
 	  Serial.println("loop: Data received");
   }
 
-  delay(60000);
+  //delay(90000);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
 }

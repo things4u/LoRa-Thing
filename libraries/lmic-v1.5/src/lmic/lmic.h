@@ -19,7 +19,6 @@
 #include "lorabase.h"
 
 #define DEBUG 1
-#include <ESP.h>
 
 // LMIC version
 #define LMIC_VERSION_MAJOR 1

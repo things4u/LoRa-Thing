@@ -1,6 +1,6 @@
 /*******************************************************************************
- * Jan 2016 Adapted for use with ESP8266 mcu by Maarten Westenberg
- * Copyright (c) 2015 Thomas Telkamp, Matthijs Kooijman and Maarten Westenberg
+ * Copyright (c) 2016 Maarten Westenberg
+ * based on work of Thomas Telkamp, Matthijs Kooijman
  *
  * Permission is hereby granted, free of charge, to anyone
  * obtaining a copy of this document and accompanying files,
@@ -8,8 +8,8 @@
  * including, but not limited to, copying, modification and redistribution.
  * NO WARRANTY OF ANY KIND IS PROVIDED.
  *
- * This example sends a valid LoRaWAN packet with payload "Hello ESP world!", that
- * will be processed by The Things Network server.
+ * This sketch sends a valid LoRaWAN packet with payload a DS18B 20 temperature 
+ * sensor reading that will be processed by The Things Network server.
  *
  * Note: LoRaWAN per sub-band duty-cycle limitation is enforced (1% in g1, 
 *  0.1% in g2). 
@@ -28,7 +28,7 @@
  *******************************************************************************/
  
 // Use ESP declarations. This sketch does not use WiFi stack of ESP
-//  #include <ESP8266WiFi.h>
+//#include <ESP8266WiFi.h>
 #include <ESP.h>
 #include <Base64.h>
 
@@ -37,6 +37,10 @@
 #include <lmic.h>
 #include <hal/hal.h>
 #include <SPI.h>
+
+//---------------------------------------------------------
+// LoRaWAN settings (for thethingsnetwork)
+//---------------------------------------------------------
 
 // LoRaWAN Application identifier (AppEUI)
 // Not used in this example
@@ -58,9 +62,25 @@ static const u1_t ARTKEY[16] = { 0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
 // See http://thethingsnetwork.org/wiki/AddressSpace
 static const u4_t DEVADDR = 0x02020403 ; // <-- Change this address for every node! ESP8266 node 0x01
 
-//////////////////////////////////////////////////
+//---------------------------------------------------------
+// Sensor declarations
+//---------------------------------------------------------
+#define ONE_WIRE_BUS 2					// GPIO2/D4
+#define S_DALLAS 1						// Make 1 to use Dallas sensor(s)
+
+#if S_DALLAS==1
+#include "OneWireESP.h"					// This is an ESP8266 specific library!
+										// The standard ESP library is edited to support
+#include "DallasTemperature.h"
+  OneWire oneWire(ONE_WIRE_BUS);
+  // Pass our oneWire reference to Dallas Temperature. 
+  DallasTemperature sensors(&oneWire);
+  int numberOfDevices; 					// Number of temperature devices found
+#endif
+
+//---------------------------------------------------------
 // APPLICATION CALLBACKS
-//////////////////////////////////////////////////
+//---------------------------------------------------------
 
 // provide application router ID (8 bytes, LSBF)
 void os_getArtEui (u1_t* buf) {
@@ -77,7 +97,8 @@ void os_getDevKey (u1_t* buf) {
     memcpy(buf, DEVKEY, 16);
 }
 
-uint8_t mydata[] = "Hello ESP8266 world!";
+int debug=1;
+uint8_t mydata[64];
 static osjob_t sendjob;
 
 // Pin mapping
@@ -115,32 +136,80 @@ void onEvent (ev_t ev) {
     }
 }
 
+// ----------------------------------------------------
+// This function prepares a message for the LoRaWAN network
+// The message will be sent multiple times.
+//
 void do_send(osjob_t* j){
-      Serial.print("Time: ");
-      Serial.println(millis() / 1000);
+      Serial.print("Time: "); Serial.println(millis() / 1000);
       // Show TX channel (channel numbers are local to LMIC)
-      Serial.print("Send, txCnhl: ");
-      Serial.println(LMIC.txChnl);
+      Serial.print("Send, txCnhl: "); Serial.println(LMIC.txChnl);
       Serial.print("Opmode check: ");
       // Check if there is not a current TX/RX job running
     if (LMIC.opmode & (1 << 7)) {
       Serial.println("OP_TXRXPEND, not sending");
     } else {
-      Serial.println("ok");
+      Serial.print("ok, ready to send: ");
+	  Serial.print((char *)mydata);
+	  Serial.println();
+	  
+#if S_DALLAS==1
+	  // Dallas sensors (can be more than 1) have channel codes 3 and above!
+	  uint8_t ind;
+	  DeviceAddress tempDeviceAddress; 			// We'll use this variable to store a found device address
+	  sensors.requestTemperatures();
+	  for(int i=0; i<numberOfDevices; i++)
+	  {
+		// Search the wire for address
+		if(sensors.getAddress(tempDeviceAddress, i)) {
+			float tempC = sensors.getTempC(tempDeviceAddress);
+			// Output the device ID
+			if (debug>=1) {
+				Serial.print(F("! DS18B20 dev ("));
+				Serial.print(i);
+			}
+			int ival = (int) tempC;					// Make integer part
+			int fval = (int) ((tempC - ival)*10);	// Fraction. Has same sign as integer part
+			if (fval<0) fval = -fval;				// So if it is negative make fraction positive again.
+			sprintf((char *)mydata,"{\"t\":\"%d.%d\"}",ival,fval);
+			if (debug>=1) {
+				Serial.print(") ");
+				Serial.println((char *)mydata);
+			}
+	  } 
+	 //else ghost device! Check your power requirements and cabling
+	}
+#else
+	strcpy((char *) mydata,"Hello ESP8266\n");
+#endif	  
+	  
+	  
       // Prepare upstream data transmission at the next possible time.
-      LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
+      LMIC_setTxData2(1, mydata, strlen((char *)mydata), 0);
+	  //LMIC_setTxData2(1, mydata, sizeof(mydata)-1, 0);
     }
     // Schedule a timed job to run at the given timestamp (absolute system time)
     os_setTimedCallback(j, os_getTime()+sec2osticks(120), do_send);
          
 }
 
+// ----------------------------------------------------
 // Remove the Serial messages once the unit is running reliable
 // 
 void setup() {
   Serial.begin(115200);
   Serial.println("Starting");
   
+#if S_DALLAS==1
+	sensors.begin();
+	numberOfDevices = sensors.getDeviceCount();
+	if (debug>=1) {
+		Serial.print("DALLAS #:");
+		Serial.print(numberOfDevices); 
+		Serial.println(" ");
+	}
+#endif
+
   // LMIC init
   os_init();
   Serial.println("os_init() finished");
@@ -167,20 +236,32 @@ void setup() {
   // Set data rate and transmit power (note: txpow seems to be ignored by the library)
   LMIC_setDrTxpow(DR_SF7,14);
   //
-  //Serial.flush();
   Serial.println("Init done");
 }
 
-// Same loop as used in original sketch. Modify for ESP8266 sensor use.
-//
-void loop() {
 
-do_send(&sendjob);
+//---------------------------------------------------------
+// main loop
+// Loop is simple: read sensor value and send it to the LoRaWAN
+// network.
+//---------------------------------------------------------
+
+void loop() {
+Serial.println("loop: Starting");
+strcpy((char *) mydata,"Starting ESP8266 Dallas\n");
+
+// The do_send function puts a message in the queue and then puts
+// itself to sleep. When waking up, will again work on queue again.
+
+do_send(&sendjob);				// Put job in run queue(send mydata buffer)
 delay(10);
 
 while(1) {
-  os_runloop_once();
-  delay(1000);
+  
+  os_runloop_once();			// Let the server run its jobs
+  
+  delay(100);					// Wait a second. Note: actual wait time is longer
+								// to comply with LoRaWAN transmission time standards.
   }
 }
 

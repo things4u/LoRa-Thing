@@ -18,13 +18,13 @@ static struct {
 } OS;
 
 void os_init () {
-	Serial.println("Starting os_init");
+
     memset(&OS, 0x00, sizeof(OS));
-	if (DEBUG==1) { Serial.println("os_init: calling hal_init"); delay(10); }
+
     hal_init();
-	if (DEBUG==1) { Serial.println("os_init: calling radio_init"); delay(10); }
+
     radio_init();
-	if (DEBUG==1) { Serial.println("os_init: calling LMIC_init"); delay(10); }
+
     LMIC_init();
 }
 

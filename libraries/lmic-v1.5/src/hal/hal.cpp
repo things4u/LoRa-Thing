@@ -1,18 +1,20 @@
 /*******************************************************************************
+ * Jan 2016, Modified by Maarten Westenberg to run on ESP8266. Run's on
+ * - Wemos D1-mini, with RFM95 and Bee shield
+ *
  * Copyright (c) 2015 Matthijs Kooijman, modifications Thomas Telkamp
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
  * http://www.eclipse.org/legal/epl-v10.html
  *
- * Jan 2016, Modified by Maarten Westenberg to run on ESP8266. Run's on
- * - Wemos D1-mini, with RFM95 and Bee shield
  *
  * This the HAL to run LMIC on top of the ESP8266 environment.
  *******************************************************************************/
 
  // Make hal.cpp hardware dependent
  // NOTE, need to add defines for every architecture supported.
+ // So rn2483 might be next candidate...
 #if defined(__AVR__)
 #include <Arduino.h>
 #elif defined(ARDUINO_ARCH_ESP8266)
@@ -184,16 +186,13 @@ void hal_init () {
 #elif defined(ARDUINO_ARCH_ESP8266)
 	Serial.println("hal_init: ESP architecture");
 #else
-	Serial.println("hal_init: Unknown Architecture");
+	Serial.println("hal_init: WARNING. Unknown Architecture");
 #endif
     // configure radio I/O and interrupt handler
-	//if (DEBUG==1) { Serial.println("hal_init: calling hal_io_init"); delay(10); }
     hal_io_init();
     // configure radio SPI
-	//if (DEBUG==1) { Serial.println("hal_init: calling hal_spi_init"); delay(10); }
     hal_spi_init();
     // configure timer and interrupt handler
-	//if (DEBUG==1) { Serial.println("hal_init: calling hal_time_init"); delay(10); }
     hal_time_init();
 }
 
