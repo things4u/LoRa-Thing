@@ -72,7 +72,7 @@ unsigned char AppSkey[16] = {
 // Please change address below to be specific for your nodes
 //
 unsigned char DevAddr[4] = {
-  0x02, 0x02, 0x04, 0x02
+  0x01, 0x01, 0x01, 0x01
 };
 
 // --------------------------------------------------------------------
