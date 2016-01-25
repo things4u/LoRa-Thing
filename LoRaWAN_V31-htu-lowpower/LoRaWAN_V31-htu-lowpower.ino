@@ -1,44 +1,38 @@
 /****************************************************************************************
 * File:     LoRaWAN_V31-htu.ino
 * Author:   Maarten Westenberg
-* Company: Things4U
-* Website:  http://www.ideetron.nl/LoRa
+* Company:  Things4U
+* 
 * E-mail:   mw12554@hotmail.com
 *
 * Publishing temperature and humidity to thethingsnetwork
+* This is the low-power version, for use on battery power.
+* So receiving functions are disabled...
 * 
-* Based on the example program made by Gerben of Ideetron
+* Based on the example program made by Gerben of Ideetron http://www.ideetron.nl/LoRa
 * Changed and extended to support HTU21d temperature/humidity sensors
 * running on an Arduino Pro-Mini
 ****************************************************************************************/
 
 /****************************************************************************************
 * Created on:         20-01-2015
-* Supported Hardware: Arduino Pro-Mini board with RFM95
+* Supported Hardware: Arduino Pro-Mini board with RFM95 and HTU21d sensor
 * 
 * Description
 * 
 * Minimal Uplink for LoRaWAN
 * 
-* This code demonstrates a LoRaWAN connection on a Nexus board. This code sends a messege every minute
-* on channel 0 (868.1 MHz) Spreading factor 7.
+* This code demonstrates a LoRaWAN connection on an Arduino Nano board. 
+* This code sends a JSON message every minute on channel 0 (868.1 MHz) Spreading factor 7.
 * On every message the frame counter is raised
 * 
 * This code does not include
-* Receiving packets and handeling
+* Receiving packets and handeling (although the original receiver code is there in comments)
 * Channel switching
 * MAC control messages
 * Over the Air joining* 
 *
-* Firmware version: 1.0
-* First version
-* 
-* Firmware version 2.0
-* Working with own AES routine
-* 
-* Firmware version 3.0
-* Listening to receive slot 2 SF9 125 KHz Bw
-* Created seperate file for LoRaWAN functions
+* Jan 2016; Raised the firmware Version level to 3.1
 ****************************************************************************************/
 
 /*
@@ -53,8 +47,7 @@
 #include "RFM95_V20.h"
 #include "LoRaMAC_V10.h"
 #include "Waitloop_V10.h"
-#include "LowPower.h"
-
+#include "LowPower.h"					// For the Arduino only (not the RFM95)
 #include "Wire.h"
 /*
 *****************************************************************************************
@@ -64,37 +57,40 @@
 
 // Sensor
 #include <HTU21D.h>
-  HTU21D myHumidity;			// Init Sensor(s)
+HTU21D myHumidity;						// Init Sensor(s)
   
 // This key is for thethingsnetwork
 unsigned char NwkSkey[16] = {
-  0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
-  0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
+  0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
 };
 
 // If we want, we can add our own key here
 unsigned char AppSkey[16] = {
-  0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
-  0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
+  0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6, 0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
 };
 
-// Things4U has Device Addresses 0x02 0x02 0x04 0x??
+// Please change address below to be specific for your nodes
 //
 unsigned char DevAddr[4] = {
-  0x02, 0x02, 0x04, 0x01
+  0x02, 0x02, 0x04, 0x02
 };
 
+// --------------------------------------------------------------------
+// SETUP FUNCTION
+// --------------------------------------------------------------------
 void setup() 
 {
-   //Initialize the UART
+ 
+  //Initialize the UART Serial communication
   Serial.begin(115200);
 
+  //Initialise the SPI port
   Serial.println("setup: Init SPI port");
-   //Initialise the SPI port
+
   SPI.begin();
   SPI.beginTransaction(SPISettings(4000000,MSBFIRST,SPI_MODE0));
   
-  //Initialize I/O pins
+  //Initialize I/O pins. Some are not used, need to clean up.
   pinMode(DS2401,OUTPUT);
   pinMode(MFP,INPUT);
   pinMode(DIO0,INPUT);
@@ -119,9 +115,14 @@ void setup()
   Serial.println("HTU21D started");
 }
 
+//---------------------------------------------------------------------
+// MAIN LOOP
+//---------------------------------------------------------------------
 void loop() 
 {
+  unsigned int  Frame_Counter = 0x0000;
   char msg[64];
+  
   // HTU21 or SHT21
   float humd = myHumidity.readHumidity();
   delay(100);
@@ -137,9 +138,12 @@ void loop()
   }
   else {
 	Serial.println("Error reading temperature and humidity");
+	//return;										// In normal operation, return and do not send the 998 values.
   }
   
   // Floats are not defined in Arduino printf
+  // Therefore make some sort of split between integer and fractional part using type casting.
+  
   int it = (int) temp;						// Make integer part
   int ft = (int) ((temp - it)*10);			// Fraction. Has same sign as integer part
   if (ft<0) ft = -ft;						// So if it is negative make fraction positive again.
@@ -150,14 +154,13 @@ void loop()
   sprintf(msg,"{\"t\":\"%d.%d\",\"h\":\"%d.%d\"}",it,ft,ih,fh);
   
   unsigned char Test = 0x00;
-
   unsigned char Sleep_Sec = 0x00;
   unsigned char Sleep_Time = 0x01;
 
   unsigned char Data_Tx[256];
-  unsigned char Data_Rx[64];
+  //unsigned char Data_Rx[64];				// No receiver supported
   unsigned char Data_Length_Tx;
-  unsigned char Data_Length_Rx = 0x00;
+  //unsigned char Data_Length_Rx = 0x00;	// No receiver supported
 
   //Initialize RFM module
   RFM_Init();
@@ -166,18 +169,19 @@ void loop()
   memcpy(Data_Tx, msg, strlen(msg));
   Data_Length_Tx = strlen(msg);
 
-  Serial.print("loop: sending message: ");
-  Serial.println(msg);
+  Serial.print("loop: sending message: "); Serial.println(msg);
   
-  Data_Length_Rx = LORA_Cycle(Data_Tx, Data_Rx, Data_Length_Tx);
-	
-  if(Data_Length_Rx != 0x00)
-  {
-      Test = Data_Rx[0];
-	  Serial.println("loop: Data received");
-  }
+  //Data_Length_Rx = LORA_Cycle(Data_Tx, Data_Rx, Data_Length_Tx);	// Send and receive
+  LORA_Send_Data(Data_Tx, Data_Length_Tx, Frame_Counter);			// Send only! (for battery sensors)
 
-  //delay(90000);
+  Frame_Counter++;
+
+  Serial.println("Sleep 90 seconds"); Serial.println();
+  delay(200);										// Delay if Sleep to succeed if all comms is done
+  RFM_Write(0x01,0x00);								// Put RFM95 in Sleep mode
+  
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);	// Put Arduino in Sleep mode 12 times 8 seconds
+  LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);   // Either this or a for-loop (whatever takes less memory)
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);
   LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF);

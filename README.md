@@ -12,3 +12,5 @@ Documentation is found on: http://things4u.github.io
 
 - esp-lmic-v1.5: a working version of a sensor built on ESP8266 that connects to 
     thethingsnetwork
+- esp-lmic-v1.5-ds18b20: A version of ESP8266/RFM95 sensor device reporting temperature 
+	values of DS18B20 temperature sensor (using waterproof DALLAS sensor)

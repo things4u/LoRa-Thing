@@ -48,8 +48,8 @@ unsigned char S_Table[16][16] = {
 *****************************************************************************************
 * Description : Function for encrypting data using AES-128
 *
-* Arguments   : *Data   Data to encrypt is a 16 byte long arry
-*               *Key    Key to encrypt data with is a 16 byte long arry
+* Arguments   : *Data   Data to encrypt is a 16 byte long array
+*               *Key    Key to encrypt data with is a 16 byte long array
 *****************************************************************************************
 */
 void AES_Encrypt(unsigned char *Data, unsigned char *Key)
